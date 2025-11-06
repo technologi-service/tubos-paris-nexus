@@ -5,7 +5,7 @@ export const getRangos = defineAction({
   accept: 'json',
   handler: async ({ request }) => {
     try {
-      const rangos = await prisma.rangos.findMany();
+      const rangos = await prisma.variables_rangos.findMany();
       return rangos;
     } catch (error) {
       console.error('Error fetching variable ranges:', error);

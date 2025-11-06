@@ -10,10 +10,10 @@ export const getMetricasByCliente = defineAction({
   }),
   handler: async ({ id }: { id: number }) => {
     // Ajusta la consulta según tu modelo
-    const metricas = await prisma.puntuaciones_clientes.findUnique({
-      where: { id_cliente: id },
+    const metricas = await prisma.vcs.findUnique({
+      where: { id_cliente: id.toString() },
       select: {
-        id: true,
+
         id_cliente: true,
         nombre_empresa: true,
         ano: true,

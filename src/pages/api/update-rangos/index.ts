@@ -19,7 +19,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     const results = [];
     for (const r of rangos) {
       if (!r.id || typeof r.min_valor !== 'number' || typeof r.max_valor !== 'number') continue;
-      const updated = await prisma.rangos.update({
+      const updated = await prisma.variables_rangos.update({
         where: { id: Number(r.id) },
         data: {
           min_valor: r.min_valor,

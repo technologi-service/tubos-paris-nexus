@@ -16,7 +16,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     if (!id || typeof nombre !== 'string' || typeof peso !== 'number') {
       return new Response(JSON.stringify({ error: 'Datos inválidos' }), { status: 400 });
     }
-    const updated = await prisma.variable.update({
+    const updated = await prisma.variables_pesos.update({
       where: { id: Number(id) },
       data: { nombre, peso },
     });

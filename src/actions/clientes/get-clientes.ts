@@ -5,7 +5,7 @@ export const getAllClientes = defineAction({
   accept: 'json',
   handler: async ({ request }) => {
     try {
-      const clientes = await prisma.clientes.findMany({
+      const clientes = await prisma.vcs.findMany({
         take: 100,
       });
       return clientes;

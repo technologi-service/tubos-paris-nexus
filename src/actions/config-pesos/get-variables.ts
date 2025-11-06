@@ -5,11 +5,11 @@ export const getVariables = defineAction({
   accept: 'json',
   handler: async ({ request }) => {
    try {
-      const variables = await prisma.variable.findMany()
+      const variables = await prisma.variables_pesos.findMany()
       return variables
    } catch (error) {
-     console.error("Error fetching variable ranges:", error);
-       throw new Error("Failed to fetch variable ranges");
+     console.error("Error fetching variable weights:", error);
+       throw new Error("Failed to fetch variable weights");
      }
     }
   });
