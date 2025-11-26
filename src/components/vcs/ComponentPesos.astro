@@ -1,0 +1,159 @@
+---
+import '../../styles/global.css';
+import { actions } from "astro:actions";
+
+// 1. Lógica de Servidor: Obtener datos de la BD
+const { data: variablesRaw, error: variablesError } = await Astro.callAction(actions.getVariables, {});
+
+// 2. Definir el ORDEN ESPECÍFICO que deseas
+const ordenDeseado = ['recencia', 'margen', 'frecuencia', 'volumen'];
+
+// 3. Preparación y Ordenamiento de Datos
+const variablesRender = ordenDeseado.map((nombreClave) => {
+    const datoEncontrado = variablesRaw?.find(v =>
+        v.nombre?.toLowerCase().includes(nombreClave)
+    );
+
+    return {
+        id: datoEncontrado?.id ?? null,
+        nombre: datoEncontrado?.nombre ?? (nombreClave.charAt(0).toUpperCase() + nombreClave.slice(1)),
+        peso: datoEncontrado?.peso ?? 0
+    };
+});
+---
+
+{/* Mensajes de Estado (Estilo Moderno/Minimalista) */}
+<div id="weights-success-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
+    <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
+        <span class="text-[#0f4c65] font-bold text-sm">✓ Guardado correctamente</span>
+    </div>
+</div>
+
+{variablesError && <div class="fixed top-4 right-4 bg-red-100 text-red-700 px-4 py-2 rounded border border-red-200 z-50">{variablesError.message}</div>}
+
+<div class="mt-2 flex flex-col items-stretch">
+
+    {/* Grid de Inputs */}
+    <form id="form-pesos" class="grid grid-cols-4 gap-6 w-full max-w-4xl ml-0 mb-1" autocomplete="off">
+
+        {variablesRender.map((variable) => (
+            <div class="relative group flex justify-end">
+
+                {/* Caja ancha */}
+                <div
+                    class="w-24 h-8 bg-[#0f4c65] rounded shadow
+                           flex items-center justify-center text-white font-bold text-sm
+                           focus-within:ring-2 focus-within:ring-offset-1 focus-within:ring-[#0f4c65] transition-all"
+                >
+                    <input
+                        type="hidden"
+                        name="id"
+                        value={variable.id ?? ''}
+                    />
+
+                    <input
+                        type="number"
+                        name="peso"
+                        step="0.01"
+                        min="0"
+                        max="0.99"
+                        value={variable.peso}
+                        class="w-full h-full bg-transparent text-center text-white font-bold text-sm focus:outline-none appearance-none cursor-pointer placeholder-white/50"
+                        placeholder="0.0"
+                        data-weight-input
+                        title={variable.nombre}
+                    />
+                </div>
+
+                {/* Tooltip */}
+                <div class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                    {variable.nombre}
+                </div>
+            </div>
+        ))}
+
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputs = document.querySelectorAll('[data-weight-input]');
+        const overlay = document.getElementById('weights-success-overlay');
+
+        inputs.forEach(input => {
+            input.addEventListener('change', async (e) => {
+                const target = e.target as HTMLInputElement;
+                let value = parseFloat(target.value);
+
+                // --- VALIDACIÓN LÓGICA ---
+                if (isNaN(value) || value >= 1) {
+                    alert("El valor debe ser menor a 1 (por ejemplo: 0.5, 0.2).");
+                    target.value = "0";
+                    target.focus();
+                    return;
+                }
+
+                if (value < 0) {
+                    alert("El valor no puede ser negativo.");
+                    target.value = "0";
+                    return;
+                }
+
+                // --- EFECTO DE CARGA (Inicio) ---
+                const form = document.getElementById('form-pesos') as HTMLFormElement;
+                // @ts-ignore
+                form.style.opacity = '0.7'; // Efecto visual de "procesando"
+                document.body.style.cursor = 'wait'; // Cursor de espera
+                // --------------------------------
+
+                const divs = form.querySelectorAll('.relative');
+                const variablesToUpdate: { id: number; peso: number }[] = [];
+
+                divs.forEach(div => {
+                    const idVal = (div.querySelector('input[name="id"]') as HTMLInputElement).value;
+                    const pesoInput = div.querySelector('input[name="peso"]') as HTMLInputElement;
+
+                    if(idVal) {
+                        variablesToUpdate.push({
+                            id: Number(idVal),
+                            peso: parseFloat(pesoInput.value || "0")
+                        });
+                    }
+                });
+
+                try {
+                    const res = await fetch('/api/update-variables', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ variables: variablesToUpdate })
+                    });
+
+                    const result = await res.json();
+
+                    // --- VALIDACIÓN CORRECTA (res.ok) ---
+                    if (res.ok) {
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
+                            setTimeout(() => {
+                                overlay.classList.remove('flex');
+                                overlay.classList.add('hidden');
+                            }, 1500);
+                        }
+                    } else {
+                        alert("Error al guardar: " + (result.error || "Error desconocido"));
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Error de conexión.");
+                } finally {
+                    // --- EFECTO DE CARGA (Fin) ---
+                    // @ts-ignore
+                    form.style.opacity = '1';
+                    document.body.style.cursor = 'default';
+                }
+            });
+        });
+    });
+</script>

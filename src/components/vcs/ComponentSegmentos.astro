@@ -1,0 +1,227 @@
+---
+import { actions } from "astro:actions";
+
+// 1. Obtener datos
+const { data: segmentosRaw, error: segmentosError } = await Astro.callAction(actions.getSegmentosVcs, {});
+
+// 2. Procesar
+let segmentosRender = [];
+if (segmentosRaw && Array.isArray(segmentosRaw)) {
+  segmentosRender = [...segmentosRaw].sort((a: any, b: any) => Number(b.estrellas) - Number(a.estrellas));
+} else {
+  segmentosRender = [5, 4, 3, 2, 1].map(star => ({
+    id: null,
+    estrellas: star,
+    score_min: '',
+    score_max: '',
+    nombre_categoria: ''
+  }));
+}
+---
+
+{/* Overlay de Éxito (Minimalista) */}
+<div id="segment-success-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
+    <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
+        <span class="text-[#0f4c65] font-bold text-sm">✓ Guardado correctamente</span>
+    </div>
+</div>
+
+{/* Error */}
+{segmentosError && (
+    <div class="mb-4 text-red-600 bg-red-50 px-4 py-2 text-sm border border-red-200 rounded">
+        {segmentosError.message}
+    </div>
+)}
+
+{/* --- FORMULARIO --- */}
+<form id="form-segmentos" class="w-full" autocomplete="off">
+
+    {/* Encabezados */}
+    <div class="flex gap-2 mb-2 px-1">
+        <div class="w-10 text-center text-[10px] font-bold text-slate-500 uppercase">Nivel</div>
+        <div class="w-20 text-center text-[10px] font-bold text-slate-500 uppercase">Mínimo</div>
+        <div class="w-20 text-center text-[10px] font-bold text-slate-500 uppercase">Máximo</div>
+        <div class="flex-1 text-left pl-1 text-[10px] font-bold text-slate-500 uppercase">Denominación</div>
+    </div>
+
+    {/* Filas */}
+    <div class="space-y-1">
+        {segmentosRender.map((segmento: any) => (
+            <div class="flex gap-2 items-center segmento-row group">
+                <input type="hidden" name="id" value={segmento.id ?? ''} />
+                <input type="hidden" name="estrellas" value={segmento.estrellas} />
+
+                {/* Estrella */}
+                <div class="w-10 h-8 bg-slate-700 text-white font-bold text-sm flex items-center justify-center rounded-[3px]">
+                    {segmento.estrellas}
+                </div>
+
+                {/* Input Min */}
+                <div class="relative w-20">
+                    <input
+                        type="number"
+                        name="score_min"
+                        value={segmento.score_min}
+                        step="0.1"
+                        min="0"
+                        max="5"
+                        class="w-full h-8 border border-gray-300 bg-white rounded-[3px] text-xs px-2 text-center outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65]"
+                        placeholder="0.0"
+                    />
+                </div>
+
+                {/* Input Max */}
+                <div class="relative w-20">
+                    <input
+                        type="number"
+                        name="score_max"
+                        value={segmento.score_max}
+                        step="0.1"
+                        min="0"
+                        max="5"
+                        class="w-full h-8 border border-gray-300 bg-white rounded-[3px] text-xs px-2 text-center outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65]"
+                        placeholder="0.0"
+                    />
+                </div>
+
+                {/* Input Nombre */}
+                <div class="flex-1">
+                    <input
+                        type="text"
+                        name="nombre_categoria"
+                        value={segmento.nombre_categoria}
+                        class="w-full h-8 border border-gray-300 bg-white rounded-[3px] text-xs px-3 outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65] placeholder-gray-400"
+                        placeholder="Nombre del segmento..."
+                    />
+                </div>
+            </div>
+        ))}
+    </div>
+
+    {/* Botón */}
+    <div class="mt-4">
+        <button
+            type="submit"
+            id="btn-guardar-segmentos"
+            class="w-full h-9 bg-[#0f4c65] hover:bg-[#0c3b4e] text-white text-sm font-semibold uppercase tracking-wide rounded-[3px] transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-70"
+        >
+            Guardar Cambios
+        </button>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('form-segmentos');
+        const overlay = document.getElementById('segment-success-overlay');
+        const btn = document.getElementById('btn-guardar-segmentos');
+
+        if (form && btn) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // 1. Estado de carga inicial
+                const originalHTML = btn.innerHTML;
+
+                // 2. Recolectar y Validar datos
+                const filas = form.querySelectorAll('.segmento-row');
+                const segmentosToUpdate: any[] = [];
+                let hayErrorValidacion = false;
+
+                filas.forEach((fila) => {
+                    const idInput = fila.querySelector('input[name="id"]');
+                    const estrellasInput = fila.querySelector('input[name="estrellas"]');
+                    const minInput = fila.querySelector('input[name="score_min"]');
+                    const maxInput = fila.querySelector('input[name="score_max"]');
+                    const nombreInput = fila.querySelector('input[name="nombre_categoria"]');
+
+                    if (idInput && estrellasInput && minInput && maxInput && nombreInput) {
+                        // @ts-ignore
+                        const idVal = idInput.value;
+                        // @ts-ignore
+                        const estrellasVal = estrellasInput.value;
+                        // @ts-ignore
+                        const minVal = minInput.value;
+                        // @ts-ignore
+                        const maxVal = maxInput.value;
+                        // @ts-ignore
+                        const nombreVal = nombreInput.value;
+
+                        // Validar rango 0-5
+                        const minNum = parseFloat(minVal);
+                        const maxNum = parseFloat(maxVal);
+
+                        if ((minVal !== '' && (minNum < 0 || minNum > 5)) ||
+                            (maxVal !== '' && (maxNum < 0 || maxNum > 5))) {
+                            hayErrorValidacion = true;
+                            // @ts-ignore
+                            minInput.style.borderColor = "red"; // Feedback visual simple
+                            // @ts-ignore
+                            maxInput.style.borderColor = "red";
+                        } else {
+                            // Resetear borde si corrige
+                            // @ts-ignore
+                            minInput.style.borderColor = "";
+                            // @ts-ignore
+                            maxInput.style.borderColor = "";
+                        }
+
+                        if (idVal) {
+                             segmentosToUpdate.push({
+                                id: Number(idVal),
+                                estrellas: Number(estrellasVal),
+                                score_min: minVal !== '' ? minNum : 0,
+                                score_max: maxVal !== '' ? maxNum : 0,
+                                nombre_categoria: nombreVal
+                            });
+                        }
+                    }
+                });
+
+                if (hayErrorValidacion) {
+                    alert("Error: Los valores Mínimo y Máximo deben estar entre 0 y 5.");
+                    return; // DETIENE EL ENVÍO
+                }
+
+                // Si pasa la validación, activamos estado de carga
+                // @ts-ignore
+                btn.disabled = true;
+                btn.innerHTML = `<span class="animate-pulse">Guardando...</span>`;
+                // @ts-ignore
+                form.style.opacity = '0.7';
+
+                try {
+                    const res = await fetch('/api/update-segmentos', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ segmentos: segmentosToUpdate })
+                    });
+
+                    const result = await res.json();
+
+                    if (res.ok) {
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
+                            setTimeout(() => {
+                                overlay.classList.remove('flex');
+                                overlay.classList.add('hidden');
+                            }, 1500);
+                        }
+                    } else {
+                        alert("Error: " + (result.error || "Desconocido"));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Error de conexión");
+                } finally {
+                    // @ts-ignore
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    // @ts-ignore
+                    form.style.opacity = '1';
+                }
+            });
+        }
+    });
+</script>

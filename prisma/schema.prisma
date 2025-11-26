@@ -7,49 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model carga_de_datos_muelles {
-  id_cliente      String?   @db.VarChar(50)
-  id_venta        String?   @db.VarChar(50)
-  id_producto     String?   @db.VarChar(50)
-  nombre_producto String?
-  fecha           DateTime? @db.Date
-  volumen         Decimal?  @db.Decimal(15, 2)
-  sede            String?
-
-  @@ignore
-}
-
 model catalogo_segmentos_vcs {
-  id        Int     @id @default(autoincrement())
-  segmento  String  @unique(map: "catalogo_segmentos_vcs_segmento_numerico_key")
-  estrellas String
-  score_min Decimal @db.Decimal(10, 2)
-  score_max Decimal @db.Decimal(10, 2)
-}
-
-model datos_para_etiquetar_clientes {
-  id_crm              String  @id
-  tag                 String?
-  mach_id             String?
-  segmento_anterior   String?
-  segmento_actual     String?
-  categoria_cognitiva String?
-}
-
-model puntuaciones {
-  id         Int      @id @default(autoincrement())
-  nombre     String?  @db.VarChar(255)
-  min_valor  Decimal? @db.Decimal
-  max_valor  Decimal? @db.Decimal
-  puntuacion Int?
-}
-
-model rangos_categorias_cognitivas {
-  id                  Int     @id @default(autoincrement())
-  de_estrellas        String?
-  a_estrellas         String?
-  categoria_cognitiva String
+  id               Int     @id @default(autoincrement())
+  estrellas        Int
+  score_min        Decimal @db.Decimal(3, 1)
+  score_max        Decimal @db.Decimal(3, 1)
+  nombre_categoria String?
 }
 
 model variable {
@@ -58,33 +21,44 @@ model variable {
   peso   Float
 }
 
-model vcs {
-  id_cliente          String  @id
-  segmento_anterior   String?
-  segmento_actual     String?
-  categoria_cognitiva String?
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model data_entrada_silpro {
+  id              BigInt?
+  nombre_empresa  String?
+  id_cliente      String?
+  volumen_total   Float?
+  margen_promedio Float?
+  recency         BigInt?
+  frecuencia      BigInt?
+  ano             Decimal? @db.Decimal
+  mes             String?
+
+  @@ignore
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model vcs_clientes {
-  id_rfm         BigInt   @id(map: "rfm_clientes_fusion_pkey") @default(autoincrement())
-  id_cliente     String
-  nombre_empresa String?
-  year_          Int
-  semestre       Int      @db.SmallInt
-  corte          DateTime @db.Date
-  recencia       Int
-  frequencia     Int
-  volumen        Decimal  @db.Decimal(20, 2)
-  r_score        Int?
-  f_score        Int?
-  v_score        Int?
-  score          Decimal? @db.Decimal(6, 2)
-  calculado_en   DateTime @default(now()) @db.Timestamptz(6)
-  segmento       String?
+model puntuaciones_clientes_vcs {
+  id                    Int      @id @default(autoincrement())
+  id_cliente            String?
+  nombre_empresa        String?
+  volumen_total         Float?
+  margen_promedio       Float?
+  recency               BigInt?
+  frecuencia            BigInt?
+  ano                   Decimal? @db.Decimal
+  mes                   String?
+  puntuacion_volumen    Int?
+  puntuacion_margen     Int?
+  puntuacion_recency    Int?
+  puntuacion_frecuencia Int?
+  ponderacion_vcs       Decimal? @db.Decimal(10, 2)
+  segmento_numerico     Int?
+  segmento_categorico   String?
+}
 
-  @@unique([id_cliente, year_, semestre], map: "uq_rfm_cliente_periodo")
-  @@index([id_cliente], map: "idx_rfm_fusion_cliente")
-  @@index([corte], map: "idx_rfm_fusion_corte")
-  @@index([year_, semestre], map: "idx_rfm_fusion_periodo")
+model rangos {
+  id         Int     @id @default(autoincrement())
+  nombre     String  @db.VarChar(255)
+  min_valor  Decimal @db.Decimal(20, 2)
+  max_valor  Decimal @db.Decimal(20, 2)
+  puntuacion Int?
 }

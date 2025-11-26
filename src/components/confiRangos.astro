@@ -1,233 +1,143 @@
 ---
-import { actions } from "astro:actions";
 
-// 1. Obtención de datos
-const { data: rangos = [] } = await Astro.callAction(actions.getRangos, {});
-const { data: pesos = [] } = await Astro.callAction(actions.getVariables, {});
-const { data: segmentos = [] } = await Astro.callAction(actions.getSegmentosVcs, {});
+import ComponentRangos from "./vcs/ComponentRangos.astro";
+import ComponentPesos from "./vcs/ComponentPesos.astro";
+import ComponentSegmentos from "./vcs/ComponentSegmentos.astro";
+import ComponentRecalcular from "./vcs/ComponentRecalcular.astro";
 
-// 2. Configuración de las columnas (Metadatos)
-// Esto define el orden en que aparecen las columnas en pantalla
-const definiciones = [
-  { id: "volumen", label: "Volumen" },
-  { id: "margen", label: "Margen" },
-  { id: "frecuencia", label: "Frecuencia" },
-  { id: "recencia", label: "Recencia" },
-];
 
-// 3. Procesamiento y Ordenamiento de Datos (Lógica 5 a 1)
-const datosProcesados = definiciones.map((def) => {
-  // Encontrar el peso correspondiente
-  const pesoObj = pesos.find((p) => p.nombre === def.id);
-
-  // Filtrar los rangos de esta categoría
-  const rangosCategoria = rangos.filter((r) => r.nombre === def.id);
-
-  // Ordenar de 5 a 1 basado en puntuación o valor máximo descendente
-  const rangosOrdenados = rangosCategoria.sort((a, b) => {
-    return (b.puntuacion || 0) - (a.puntuacion || 0); // Orden descendente por puntuación
-  });
-
-  return {
-    ...def,
-    peso: pesoObj ? pesoObj.peso : "N/A",
-    rangos: rangosOrdenados,
-  };
-});
-
-// Ordenar segmentos en forma descendente (5 a 1) usando score_max convertido a número
-const segmentosOrdenados = segmentos.sort((a, b) => {
-  return Number(b.score_max) - Number(a.score_max); // Orden descendente por score_max
-});
 ---
-
 <div class="min-h-screen bg-white">
   <header
-    class="relative overflow-hidden bg-linear-to-r from-maya-dark via-maya-deep to-maya-dark bg-cover bg-no-repeat bg-center"
+    class="relative overflow-hidden
+           bg-linear-to-r from-maya-dark via-maya-deep to-maya-dark
+           bg-cover bg-no-repeat bg-center"
     style="background-image: url('/dragones6.png');"
   >
-    <div class="container mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center min-h-[250px] md:min-h-[300px] lg:min-h-[350px]">
+    <div
+      class="container mx-auto px-6 py-8
+             grid grid-cols-1 md:grid-cols-2
+             gap-8 items-center min-h-[250px] md:min-h-[300px] lg:min-h-[350px]"
+    >
       <div class="hidden md:block"></div>
+
       <div class="text-center md:text-right md:pr-12">
-        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">Bienvenidos a</h1>
-        <h2 class="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">KAIloop Nexus</h2>
-        <p class="text-xl text-green-500 italic font-bold leading-snug">El centro de gestión</p>
-        <p class="text-xl text-green-500 italic font-bold leading-snug">Inteligente de Kukulcan AI</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">
+          Bienvenidos a
+        </h1>
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
+          KAIloop Nexus
+        </h2>
+        <p class="text-xl text-green-500 italic font-bold leading-snug">
+          El centro de gestión
+        </p>
+        <p class="text-xl text-green-500 italic font-bold leading-snug">
+          Inteligente de Kukulcan AI
+        </p>
       </div>
     </div>
   </header>
 
   <main class="relative bg-white flex-grow">
     <div class="container mx-auto px-6 py-12">
+
       <section class="mb-8">
-        <h2 class="text-3xl font-semibold text-gray-700">Funcionalidades Neuronas de Negocio</h2>
+        <h2 class="text-3xl font-semibold text-gray-700">
+          Funcionalidades Neuronas de Negocio
+        </h2>
       </section>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-0 mb-12 border-t border-b border-gray-300 py-8">
-
-        <section aria-labelledby="matriz-scoring-title" class="space-y-10 max-w-5xl mx-auto lg:col-span-5">
+        <section
+          aria-labelledby="matriz-scoring-title"
+          class="space-y-10 max-w-5xl mx-auto lg:col-span-5"
+        >
 
           <div>
+
             <div class="flex justify-center items-center mb-4">
-              <label for="period-selector" class="text-base font-semibold text-gray-700 mr-3">Periodo:</label>
-              <select id="period-selector" class="py-1.5 px-3 border border-gray-300 rounded shadow-sm bg-white text-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500">
-                {[...Array(12)].map((_, i) => (
-                    <option value={`${i + 1}m`}>{i + 1} {i === 0 ? 'Mes' : 'Meses'}</option>
-                ))}
-              </select>
+                <label for="period-selector" class="text-base font-semibold text-gray-700 mr-3">
+                    Periodo:
+                </label>
+                <select
+                    id="period-selector"
+                    class="py-1.5 px-3 border border-gray-300 rounded shadow-sm
+                           bg-white text-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                    <option value="1m">1 Mes</option>
+                    <option value="2m">2 Meses</option>
+                    <option value="3m">3 Meses</option>
+                    <option value="4m">4 Meses</option>
+                    <option value="5m">5 Meses</option>
+                    <option value="6m">6 Meses</option>
+                    <option value="7m">7 Meses</option>
+                    <option value="8m">8 Meses</option>
+                    <option value="9m">9 Meses</option>
+                    <option value="10m">10 Meses</option>
+                    <option value="11m">11 Meses</option>
+                    <option value="12m">12 Meses</option>
+                </select>
             </div>
             <div class="border-t border-gray-400 mb-2"></div>
 
-            <h3 id="matriz-scoring-title" class="text-base font-semibold text-gray-700 text-center">
+            <h3
+              id="matriz-scoring-title"
+              class="text-base font-semibold text-gray-700 text-center"
+            >
               Matriz de Scoring
             </h3>
 
-            <div class="mt-4 flex flex-col items-stretch">
+            <ComponentPesos />
 
-              <div class="grid grid-cols-4 gap-6 w-full max-w-4xl ml-2.5 mb-3">
-                {datosProcesados.map((col) => (
-                    <div class="w-12 h-8 bg-[#0f4c65] rounded shadow mx-auto flex items-center justify-center text-white font-bold text-sm">
-                        {col.peso}
-                    </div>
-                ))}
-              </div>
+            <ComponentRangos/>
 
-              <div class="flex">
-                <div class="flex flex-col items-center mt-[50px] mr-2 text-sm font-semibold">
-                  {[5, 4, 3, 2, 1].map((num) => (
-                      <div class={`h-9 flex items-center justify-center ${num !== 1 ? 'mb-6' : ''}`}>
-                          <span>{num}</span>
-                      </div>
-                  ))}
-                </div>
 
-                <div class="flex-1">
-                  <div class="grid grid-cols-4 gap-6 w-full max-w-4xl">
-
-                    {datosProcesados.map((columna) => (
-                        <div>
-                            <div class="rounded overflow-hidden">
-                                <div class="bg-slate-800 text-white text-center text-sm font-semibold py-1">
-                                    {columna.label}
-                                </div>
-                                <div class="flex justify-between bg-slate-700 text-white text-xs font-medium px-2 py-0.5">
-                                    <span class="w-1/2 text-left">min</span>
-                                    <span class="w-1/2 text-right">max</span>
-                                </div>
-                            </div>
-
-                            <div class="mt-1 space-y-6">
-                                {columna.rangos.map((rango) => (
-                                    <div class="flex justify-between items-center h-9 border border-gray-300 bg-white rounded p-1 space-x-1">
-                                        <input
-                                            type="number"
-                                            placeholder="Mínimo"
-                                            class="w-1/2 h-full text-sm border-none focus:ring-0 p-0 text-center bg-transparent"
-                                            value={rango.min_valor?.toString() || ""}
-                                            readonly
-                                        />
-                                        <input
-                                            type="number"
-                                            placeholder="Máximo"
-                                            class="w-1/2 h-full text-sm border-none focus:ring-0 p-0 text-center bg-transparent"
-                                            value={rango.max_valor?.toString() || ""}
-                                            readonly
-                                        />
-                                    </div>
-                                ))}
-                                {/* Relleno visual si faltan datos para llegar a 5 filas */}
-                                {columna.rangos.length < 5 && [...Array(5 - columna.rangos.length)].map(() => (
-                                     <div class="h-9 border border-dashed border-gray-300 bg-gray-50 rounded p-1 opacity-50"></div>
-                                ))}
-                            </div>
-
-                            <button type="button" class="mt-4 w-full bg-[#0f4c65] text-white py-2 text-sm font-semibold rounded shadow-md hover:bg-[#0d3e52] transition-colors">
-                                Actualizar
-                            </button>
-                        </div>
-                    ))}
-
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
-          <div>
-            <div class="border-t border-gray-400 mb-2"></div>
-            <h3 id="matriz-segmentos-title" class="text-base font-semibold text-gray-700 text-center">
-              Matriz de Segmentos
-            </h3>
+        <div>
+    <div class="border-t border-gray-400 mb-2"></div>
 
-            <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-              <div class="lg:col-span-2 max-w-2xl mx-auto w-full">
-                <div class="flex gap-2 mb-1">
-                  <div class="w-16 bg-slate-800 text-white text-center text-xs font-semibold py-1 rounded">De</div>
-                  <div class="w-16 bg-slate-800 text-white text-center text-xs font-semibold py-1 rounded">A</div>
-                  <div class="flex-[2] bg-slate-800 text-white text-center text-xs font-semibold py-1 rounded">Denominación</div>
-                </div>
+<ComponentSegmentos/>
+<ComponentRecalcular/>
 
-                <div class="space-y-2">
-                    {/* Aquí iteramos los segmentos si existen, si no, mostramos placeholders */}
-                    {(segmentos.length > 0 ? segmentosOrdenados : [1,2,3,4,5]).map((seg) => (
-                        <div class="flex gap-2">
-                            <input
-                                type="number"
-                                class="w-16 h-8 border border-gray-300 bg-white rounded text-sm p-1 text-center"
-                                placeholder="De"
-                                value={typeof seg === 'object' && seg.score_min ? seg.score_min.toString() : ''}
-                            />
-                            <input
-                                type="number"
-                                class="w-16 h-8 border border-gray-300 bg-white rounded text-sm p-1 text-center"
-                                placeholder="A"
-                               value={typeof seg === 'object' && seg.score_max ? seg.score_max.toString() : ''}
-                            />
-                            <input
-                                type="text"
-                                class="flex-[2] h-8 border border-gray-300 bg-white rounded text-sm p-2"
-                                placeholder="Nombre del Segmento"
-                               value={typeof seg === 'object' && seg.segmento ? seg.segmento.toString() : ''}
-                            />
-                        </div>
-                    ))}
-                </div>
-              </div>
 
-              <div class="flex justify-center lg:justify-end">
-                <button type="button" class="w-48 h-40 bg-[#0f4c65] text-white text-xl font-semibold rounded shadow-md flex items-center justify-center hover:bg-[#0c3b4e] transition-colors">
-                  Calcular
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div class="w-full h-64 bg-[#0f4c65] rounded shadow-md flex items-center justify-center text-white text-xl font-semibold">
-                [Image of scoring matrix dashboard chart]
-            </div>
-            <button type="button" class="w-full bg-[#0f4c65] text-white py-3 text-lg font-semibold rounded shadow-md hover:bg-[#0c3b4e] transition-colors">
-              Acceso a Power Bi
-            </button>
-          </div>
-
-        </section>
-      </div>
-    </div>
   </main>
 
   <footer class="bg-gray-900 text-white py-8 px-4 md:px-8 relative overflow-hidden w-full mt-auto">
-     <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between z-10 relative w-full">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between z-10 relative w-full">
       <div class="w-full md:w-2/3 text-center md:text-left mb-6 md:mb-0 md:pr-8">
         <p class="text-lg leading-relaxed">
-          La neurona VCS impulsa una nueva era de monetización B2B...
+          La neurona VCS impulsa una nueva era de monetización B2B,
+          transformando datos de comportamiento en decisiones rentables
+          que maximizan ingresos, eficiencia y fidelización.
         </p>
       </div>
       <div class="w-full md:w-1/3 flex flex-col items-center md:items-end">
-          <div class="flex items-center gap-2">
-              <span class="text-xl font-bold">Kukulcan AI</span>
+        <div class="flex items-center gap-2">
+          <svg width="80" height="40" viewBox="0 0 200 100" fill="#E5E7EB" xmlns="http://www.w3.org/2000/svg"
+               aria-labelledby="logoTitle logoDesc" role="img" class="flex-shrink-0">
+            <title id="logoTitle">Kukulcan AI Consulting Logo</title>
+            <desc id="logoDesc">Logo de Kukulcan AI Consulting, con un dragón y el texto.</desc>
+            <path d="M20 50 C 30 20, 70 20, 80 50 C 70 80, 30 80, 20 50 Z" fill="#E5E7EB"/>
+            <circle cx="25" cy="45" r="3" fill="white"/>
+            <path d="M22 47 Q25 42, 28 47" stroke="black" stroke-width="1" fill="none"/>
+            <text x="90" y="45" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#E5E7EB">Kukulcan AI</text>
+            <text x="90" y="70" font-family="Arial, sans-serif" font-size="16" fill="#E5E7EB">Consulting</text>
+            <line x1="90" y1="75" x2="190" y2="75" stroke="#E5E7EB" stroke-width="1.5"/>
+          </svg>
+          <div>
+            <h3 class="text-xl font-semibold">Kukulcan AI</h3>
+            <p class="text-sm">Consulting</p>
           </div>
+        </div>
       </div>
+    </div>
+    <div class="absolute inset-0 z-0">
+      <div class="absolute top-1/4 left-1/4 w-12 h-12 bg-gray-700 opacity-20 transform rotate-45"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-10 h-10 bg-gray-700 opacity-20 transform rotate-45"></div>
+      <div class="absolute top-1/3 left-1/2 w-2 h-2 rounded-full bg-gray-600 opacity-30"></div>
+      <div class="absolute bottom-1/3 right-1/3 w-2 h-2 rounded-full bg-gray-600 opacity-30"></div>
     </div>
   </footer>
 </div>

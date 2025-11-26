@@ -1,108 +1,94 @@
 import type { APIRoute } from 'astro';
 import prisma from '../../../db/prisma';
-
-export const GET: APIRoute = ({ params, request }) => {
-  return new Response(
-    JSON.stringify({
-      message: 'This was a GET!',
-    })
-  );
-};
+import { Prisma } from '@prisma/client';
 
 export const PATCH: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    console.log('Cuerpo recibido:', body); // Log para inspeccionar los datos recibidos
-    const { rangos } = body;
 
-    // Validación de los datos recibidos
-    if (!Array.isArray(rangos) || rangos.length === 0) {
+    // CORRECCIÓN 1: Extraemos 'segmentos' en lugar de 'rangos'
+    // para coincidir con lo que envía el frontend.
+    const { segmentos } = body;
+
+    // Validación inicial
+    if (!Array.isArray(segmentos) || segmentos.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Datos inválidos: rangos debe ser un arreglo no vacío' }),
+        JSON.stringify({ error: 'Datos inválidos: se requiere un arreglo de segmentos' }),
         { status: 400 }
       );
     }
 
-    const results = [];
-    const errores = [];
+    const promesasUpdate = segmentos.map(async (r: any) => {
+      if (!r.id || typeof r.id !== 'number') {
+        throw new Error(`ID inválido: ${r.id}`);
+      }
 
-    for (const r of rangos) {
-      // Validar que cada rango tenga los campos necesarios
-      if (
-        !r.id ||
-        typeof r.id !== 'number' ||
-        typeof r.score_min !== 'number' ||
-        typeof r.score_max !== 'number' ||
-        typeof r.estrellas !== 'string' ||
-        typeof r.segmento !== 'string'
-      ) {
-        errores.push({ id: r.id, error: 'Datos incompletos o inválidos' });
-        continue;
+      // Validación lógica de los scores
+      // Nota: Convertimos a Number por si llegan como string desde el input HTML
+      const min = Number(r.score_min);
+      const max = Number(r.score_max);
+
+      if (min >= max) {
+        // Opcional: Puedes lanzar error o permitirlo si tu lógica de negocio lo acepta.
+        // throw new Error(`El valor mínimo (${min}) no puede ser mayor o igual al máximo (${max})`);
       }
 
       try {
-        // Verificar si el rango existe antes de actualizar
-        const existingRango = await prisma.catalogo_segmentos_vcs.findUnique({
-          where: { id: r.id },
-        });
-
-        if (!existingRango) {
-          errores.push({ id: r.id, error: 'El rango no existe en la base de datos' });
-          continue;
-        }
-
-        // Validar que score_min sea menor que score_max
-        if (r.score_min >= r.score_max) {
-          errores.push({ id: r.id, error: 'score_min debe ser menor que score_max' });
-          continue;
-        }
-
-        // Actualización de cada rango en la base de datos
         const updated = await prisma.catalogo_segmentos_vcs.update({
           where: { id: r.id },
           data: {
-            estrellas: r.estrellas.trim(),
-            score_min: r.score_min,
-            score_max: r.score_max,
-            segmento: r.segmento.trim(),
+            estrellas: r.estrellas,
+            score_min: min,
+            score_max: max,
+            // CORRECCIÓN 2: Mapeo de nombres
+            // El frontend envía 'nombre_categoria', la DB espera 'segmento'
+            nombre_categoria: r.nombre_categoria,
           },
         });
-        results.push(updated);
-      } catch (updateError) {
-        console.error(`Error actualizando el rango con id ${r.id}:`, updateError);
-        errores.push({ id: r.id, error: 'Error al actualizar en la base de datos' });
+        return updated;
+      } catch (dbError) {
+        if (dbError instanceof Prisma.PrismaClientKnownRequestError) {
+          if (dbError.code === 'P2025') {
+            throw new Error('El registro no existe en la base de datos');
+          }
+        }
+        throw dbError;
       }
-    }
+    });
 
-    // Respuesta con resultados y errores
+    const resultadosRaw = await Promise.allSettled(promesasUpdate);
+
+    const results: any[] = [];
+    const errores: any[] = [];
+
+    resultadosRaw.forEach((res, index) => {
+      const itemOriginal = segmentos[index];
+
+      if (res.status === 'fulfilled') {
+        results.push(res.value);
+      } else {
+        console.error(`Error en ID ${itemOriginal.id}:`, res.reason);
+        errores.push({
+          id: itemOriginal.id,
+          error: res.reason?.message || 'Error desconocido',
+        });
+      }
+    });
+
     return new Response(
       JSON.stringify({
         message: 'Proceso completado',
+        procesados: results.length,
+        fallidos: errores.length,
         actualizados: results,
         errores,
       }),
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error PATCH rangos:', error);
-    return new Response(JSON.stringify({ error: 'No se pudo procesar la solicitud' }), {
+    console.error('Error crítico en PATCH segmentos:', error);
+    return new Response(JSON.stringify({ error: 'Error interno del servidor al procesar JSON' }), {
       status: 500,
     });
   }
-};
-
-export const DELETE: APIRoute = ({ request }) => {
-  return new Response(
-    JSON.stringify({
-      message: 'This was a DELETE!',
-    })
-  );
-};
-
-export const ALL: APIRoute = ({ request }) => {
-  return new Response(
-    JSON.stringify({
-      message: `This was a ${request.method}!`,
-    })
-  );
 };

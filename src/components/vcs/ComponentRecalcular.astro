@@ -1,0 +1,137 @@
+---
+// No se requiere lógica de servidor (frontmatter) para esta parte visual
+---
+
+{/* Overlay de Éxito (Reutilizando el estilo consistente) */}
+<div id="calc-success-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
+    <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
+        <span class="text-[#0f4c65] font-bold text-sm">✓ Cálculo iniciado correctamente</span>
+    </div>
+</div>
+
+<div class="flex flex-col gap-8 mt-8">
+
+        {/* Sección Botón Calcular Refactorizado */}
+        <div class="flex justify-center w-full">
+                <button
+                    type="button"
+                    id="btn-trigger-webhook"
+                    class="group relative w-full max-w-3xl py-5 px-8 bg-gradient-to-br from-[#0f4c65] to-[#165f7d] text-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 flex items-center justify-center gap-5 overflow-hidden"
+                >
+                        {/* Efecto de brillo en hover */}
+                        <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3 group-hover:rotate-12 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <div class="flex flex-col items-start">
+                                <span class="text-2xl font-bold tracking-wide">CALCULAR</span>
+                                <span class="text-xs uppercase tracking-widest opacity-80 group-hover:opacity-100">Procesar Modelo</span>
+                        </div>
+                </button>
+        </div>
+
+    {/* Sección Gráfico y Power BI */}
+    <div class="space-y-4">
+
+        {/* Placeholder del Gráfico con mejor estilo */}
+        <div class="w-full h-64 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 relative overflow-hidden group">
+            <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#0f4c65_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+            <span class="text-xl font-semibold z-10">Visualización de Datos</span>
+            <span class="text-sm z-10">El gráfico se generará aquí tras calcular</span>
+        </div>
+
+        {/* Botón Power BI */}
+        <button
+          type="button"
+          id="btn-powerbi"
+          class="w-full bg-white border-2 border-[#0f4c65] text-[#0f4c65] py-3 text-lg font-bold rounded-lg shadow-sm hover:bg-[#0f4c65] hover:text-white transition-all duration-300 flex items-center justify-center gap-2 group"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+               <path d="M4 18h4V6H4v12zm12-8v8h4v-8h-4zm-6 4v4h4v-4h-4z"/> </svg>
+            Acceso a Power BI
+        </button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnWebhook = document.getElementById('btn-trigger-webhook');
+        const btnPowerBi = document.getElementById('btn-powerbi');
+        const overlay = document.getElementById('calc-success-overlay');
+
+        // --- CONFIGURACIÓN ---
+        // 🔴 IMPORTANTE: REEMPLAZA ESTO CON TU URL REAL
+        const WEBHOOK_URL = 'https://tu-webhook-url.com/trigger';
+        const POWERBI_URL = 'https://app.powerbi.com/';
+
+        // 1. Lógica del Botón CALCULAR (Webhook)
+        if (btnWebhook) {
+            btnWebhook.addEventListener('click', async () => {
+                const originalContent = btnWebhook.innerHTML;
+
+                // Estado de carga
+                // @ts-ignore
+                btnWebhook.disabled = true;
+                btnWebhook.innerHTML = `
+                    <svg class="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                `;
+
+                try {
+                    // Llamada al Webhook
+                    // Nota: Si tu webhook no devuelve JSON, quita el 'await res.json()'
+                    const res = await fetch(WEBHOOK_URL, {
+                        method: 'POST', // Usualmente los webhooks esperan POST
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            timestamp: new Date().toISOString(),
+                            action: 'calcular_modelo',
+                            user: 'usuario_demo' // Puedes enviar datos extra si quieres
+                        })
+                    });
+
+                    if (res.ok) {
+                        console.log("Webhook disparado con éxito");
+                        // Mostrar Overlay
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
+                            setTimeout(() => {
+                                overlay.classList.remove('flex');
+                                overlay.classList.add('hidden');
+                            }, 2000);
+                        }
+                    } else {
+                        console.error("Error en webhook:", res.status);
+                        alert("Error al iniciar el cálculo. Revisa la consola.");
+                    }
+
+                } catch (error) {
+                    console.error("Error de conexión:", error);
+                    // Como es un ejemplo y no tienes URL real puesta, probablemente fallará, así que mostramos alerta
+                    alert("Error de conexión con el Webhook (Asegúrate de configurar la URL en el script).");
+                } finally {
+                    // Restaurar botón
+                    // @ts-ignore
+                    btnWebhook.disabled = false;
+                    btnWebhook.innerHTML = originalContent;
+                }
+            });
+        }
+
+        // 2. Lógica del Botón Power BI
+        if (btnPowerBi) {
+            btnPowerBi.addEventListener('click', () => {
+                window.open(POWERBI_URL, '_blank');
+            });
+        }
+    });
+</script>

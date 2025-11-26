@@ -1,0 +1,195 @@
+---
+import '../../styles/global.css';
+import { actions } from "astro:actions";
+
+// 1. Lógica de Servidor: Obtener datos
+const { data: rangos, error: errorRangos } = await Astro.callAction(actions.getRangos, {});
+
+// 2. Procesamiento de Datos
+let gruposRaw: Record<string, any[]> = {};
+
+// Paso A: Agrupar los datos tal cual vienen de la BD
+if (Array.isArray(rangos)) {
+  for (const rango of rangos) {
+    if (!gruposRaw[rango.nombre]) gruposRaw[rango.nombre] = [];
+    gruposRaw[rango.nombre].push(rango);
+  }
+}
+
+// Paso B: Definir el ORDEN ESTRICTO
+const ordenDeseado = ['recencia', 'margen', 'frecuencia', 'volumen'];
+
+// Paso C: Construir el array final
+const gruposArray = ordenDeseado.map((nombreClave) => {
+    const nombreRealBD = Object.keys(gruposRaw).find(key =>
+        key.toLowerCase().includes(nombreClave)
+    );
+
+    if (nombreRealBD && gruposRaw[nombreRealBD]) {
+        const rangosOrdenados = gruposRaw[nombreRealBD].sort((a, b) =>
+            (b.puntuacion ?? 0) - (a.puntuacion ?? 0)
+        );
+        return [nombreRealBD, rangosOrdenados];
+    }
+    return null;
+}).filter(item => item !== null);
+---
+
+<section class="min-h-[300px] bg-gray-50 flex flex-col items-center justify-center py-4">
+
+    {/* Mensajes de Estado (Estilo Minimalista actualizado) */}
+    <div id="success-message-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
+        <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
+            <span class="text-[#0f4c65] font-bold text-sm">✓ Guardado correctamente</span>
+        </div>
+    </div>
+
+    {errorRangos && <div class="fixed top-4 right-4 bg-red-100 text-red-700 px-4 py-2 rounded border border-red-200 z-50">{errorRangos.message}</div>}
+
+
+    {/* --- INICIO DE TU DISEÑO EXACTO --- */}
+    <div class="flex">
+        <div class="flex flex-col items-center mt-15 mr-2 text-sm font-semibold text-slate-600">
+            <div class="h-9 mb-6 flex items-center justify-center"><span>5*</span></div>
+            <div class="h-9 mb-6 flex items-center justify-center"><span>4*</span></div>
+            <div class="h-9 mb-6 flex items-center justify-center"><span>3*</span></div>
+            <div class="h-9 mb-6 flex items-center justify-center"><span>2*</span></div>
+            <div class="h-9 flex items-center justify-center"><span>1*</span></div>
+        </div>
+
+        <div class="flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-5xl">
+
+                {gruposArray.length > 0 ? gruposArray.map(([nombreGrupo, rangos]) => (
+                    <form class="grupo-form w-full" autocomplete="off" data-grupo={nombreGrupo}>
+
+                        {/* Header de la Tarjeta */}
+                        <div class="rounded overflow-hidden">
+                            <div class="bg-slate-800 text-white text-center text-sm font-semibold py-1 uppercase">
+                                {nombreGrupo}
+                            </div>
+                            <div class="flex justify-between bg-slate-700 text-white text-xs font-medium px-2 py-0.5">
+                                <span class="w-1/2 text-left">min</span>
+                                <span class="w-1/2 text-right">max</span>
+                            </div>
+                        </div>
+
+                        {/* Inputs */}
+                        <div class="mt-5 space-y-5">
+                            {/* @ts-ignore */}
+                            {rangos.map((rango, idx) => (
+                                <div class="flex justify-between items-center h-9 border border-gray-300 bg-white rounded p-1 space-x-1 hover:border-slate-500 transition-colors" data-rango>
+
+                                    <input type="hidden" name="id" value={rango.id} />
+                                    <input type="hidden" name={`puntuacion_${idx}`} value={rango.puntuacion} />
+
+                                    <input
+                                        type="number"
+                                        name={`min_valor_${idx}`}
+                                        value={rango.min_valor ?? ''}
+                                        placeholder="Mínimo"
+                                        class="w-1/2 h-full text-sm border-none focus:ring-0 p-0 text-center bg-transparent placeholder-gray-400 text-slate-700 font-medium"
+                                    >
+
+                                    <div class="w-[1px] h-4 bg-gray-200"></div>
+
+                                    <input
+                                        type="number"
+                                        name={`max_valor_${idx}`}
+                                        value={rango.max_valor ?? ''}
+                                        placeholder="Máximo"
+                                        class="w-1/2 h-full text-sm border-none focus:ring-0 p-0 text-center bg-transparent placeholder-gray-400 text-slate-700 font-medium"
+                                    >
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Botón */}
+                        <button
+                            type="submit"
+                            class="mt-4 w-full bg-[#0f4c65] text-white py-2 text-sm font-semibold rounded shadow-md hover:bg-[#0d3e52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Actualizar
+                        </button>
+                    </form>
+                )) : (
+                    <div class="col-span-4 text-center py-10 text-gray-500">No hay datos cargados.</div>
+                )}
+
+            </div>
+        </div>
+    </div>
+    {/* --- FIN DE TU DISEÑO EXACTO --- */}
+</section>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.grupo-form').forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+                if (!submitBtn) return;
+
+                // --- EFECTO VISUAL ---
+                const originalHTML = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                // Agregamos la animación de pulso
+                submitBtn.innerHTML = `<span class="animate-pulse">Guardando...</span>`;
+                // Bajamos la opacidad del formulario
+                // @ts-ignore
+                form.style.opacity = '0.7';
+                // ---------------------
+
+                const rangos: { id: number, min_valor: number | null, max_valor: number | null, puntuacion: number | null }[] = [];
+                const inputsDivs = form.querySelectorAll('[data-rango]');
+                const divsArray = Array.from(inputsDivs).reverse();
+
+                divsArray.forEach((div) => {
+                    const idInput = div.querySelector('input[name="id"]');
+                    const minInput = div.querySelector('input[name^="min_valor"]');
+                    const maxInput = div.querySelector('input[name^="max_valor"]');
+                    const ptInput = div.querySelector('input[name^="puntuacion"]');
+
+                    if (!idInput) return;
+                    const id = Number((idInput as HTMLInputElement).value);
+                    const min_valor = minInput && (minInput as HTMLInputElement).value !== '' ? parseFloat((minInput as HTMLInputElement).value) : null;
+                    const max_valor = maxInput && (maxInput as HTMLInputElement).value !== '' ? parseFloat((maxInput as HTMLInputElement).value) : null;
+                    const puntuacion = ptInput ? parseInt((ptInput as HTMLInputElement).value) : null;
+
+                    rangos.push({ id, min_valor, max_valor, puntuacion });
+                });
+
+                try {
+                    const res = await fetch('/api/update-rangos', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rangos })
+                    });
+                    const result = await res.json();
+
+                    const overlay = document.getElementById('success-message-overlay');
+                    if (result.ok) {
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
+                            setTimeout(() => {
+                                overlay.classList.remove('flex');
+                                overlay.classList.add('hidden');
+                            }, 1500);
+                        }
+                    } else {
+                        alert(result.error || 'Error al guardar.');
+                    }
+                } catch (err) {
+                    alert('Error de conexión.');
+                } finally {
+                    // --- RESTAURAR ESTADO ---
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHTML;
+                    // @ts-ignore
+                    form.style.opacity = '1';
+                }
+            });
+        });
+    });
+</script>

@@ -19,7 +19,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     const results = [];
     for (const r of rangos) {
       if (!r.id || typeof r.min_valor !== 'number' || typeof r.max_valor !== 'number') continue;
-      const updated = await prisma.puntuaciones.update({
+      const updated = await prisma.rangos.update({
         where: { id: Number(r.id) },
         data: {
           min_valor: r.min_valor,
@@ -29,9 +29,12 @@ export const PATCH: APIRoute = async ({ request }) => {
       });
       results.push(updated);
     }
-    return new Response(JSON.stringify({ message: 'Rangos actualizados', resultados: results }), {
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({ ok: true, message: 'Rangos actualizados', resultados: results }),
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error('Error PATCH rangos:', error);
     return new Response(JSON.stringify({ error: 'No se pudo actualizar los rangos' }), {
