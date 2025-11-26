@@ -1,3 +1,18 @@
+---
+import { actions } from "astro:actions";
+
+// 1. Lógica de Servidor (Se ejecuta al cargar la página)
+const { data: periodoRaw, error: periodoError } = await Astro.callAction(actions.getPeriodo, {});
+
+// Procesamos el dato aquí arriba para tener el número limpio
+let periodoValor = 1; // Valor por defecto
+if (periodoRaw && Array.isArray(periodoRaw) && periodoRaw.length > 0) {
+    periodoValor = Number(periodoRaw[0].periodo);
+}
+// Ahora 'periodoValor' tiene el número (ej: 6) listo para usarse
+---
+
+{/* Overlay de Éxito */}
 <div id="calc-success-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
     <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
         <span class="text-[#0f4c65] font-bold text-sm">✓ Cálculo iniciado correctamente</span>
@@ -7,9 +22,11 @@
 <div class="flex flex-col gap-8 mt-8">
 
     <div class="flex justify-center w-full">
+        {/* 2. Pasamos el dato del servidor al cliente usando data-periodo */}
         <button
             type="button"
             id="btn-trigger-webhook"
+            data-periodo={periodoValor}
             class="group relative w-full max-w-3xl py-5 px-8 bg-gradient-to-br from-[#0f4c65] to-[#165f7d] text-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 flex items-center justify-center gap-5 overflow-hidden"
         >
             <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -40,7 +57,8 @@
           class="w-full bg-white border-2 border-[#0f4c65] text-[#0f4c65] py-3 text-lg font-bold rounded-lg shadow-sm hover:bg-[#0f4c65] hover:text-white transition-all duration-300 flex items-center justify-center gap-2 group"
         >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
-               <path d="M4 18h4V6H4v12zm12-8v8h4v-8h-4zm-6 4v4h4v-4h-4z"/> </svg>
+               <path d="M4 18h4V6H4v12zm12-8v8h4v-8h-4zm-6 4v4h4v-4h-4z"/>
+            </svg>
             Acceso a Power BI
         </button>
     </div>
@@ -52,46 +70,44 @@
         const btnPowerBi = document.getElementById('btn-powerbi');
         const overlay = document.getElementById('calc-success-overlay');
 
-        // --- CONFIGURACIÓN ---
-        // Asegúrate de que este es el link correcto. Si usas 'webhook-test',
-        // debes tener la ventana de n8n abierta y escuchando.
-        const WEBHOOK_URL = 'https://kukulcanai.app.n8n.cloud/webhook-test/recalcular-score';
+        const WEBHOOK_URL = 'https://kukulcanai.app.n8n.cloud/webhook/recalcular-score';
         const POWERBI_URL = 'https://app.powerbi.com/';
 
-        // 1. Lógica del Botón CALCULAR (Webhook)
         if (btnWebhook) {
             btnWebhook.addEventListener('click', async () => {
                 const originalContent = btnWebhook.innerHTML;
 
-                // Estado de carga (Loading)
-                (btnWebhook as HTMLButtonElement).disabled = true;
+                // 3. Leer el dato que pusimos en el atributo data-periodo
+                const periodoGuardado = btnWebhook.getAttribute('data-periodo');
+                const periodoNumero = Number(periodoGuardado);
+
+                // A. Loading Visual
+                // @ts-ignore
+                btnWebhook.disabled = true;
                 btnWebhook.innerHTML = `
                     <svg class="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
+                    <span class="ml-2 text-lg">Enviando a Motor...</span>
                 `;
 
                 try {
-                    // === AQUÍ ESTÁ EL CAMBIO CLAVE ===
+
+
+                    // B. LLAMADA AL WEBHOOK (Sin consultar BD, usando el dato inyectado)
                     const res = await fetch(WEBHOOK_URL, {
-                        method: 'POST', // IMPORTANTE: Debe ser POST para enviar body
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        // Aquí enviamos los parámetros que quieres procesar
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             timestamp: new Date().toISOString(),
                             action: 'recalcular_vcs',
-                            periodo: 6,
-                            origen: 'kailoop'
+                            periodo: periodoNumero,
+                            origen: 'kailoop_nexus'
                         })
                     });
 
                     if (res.ok) {
-                        console.log("Webhook disparado con éxito");
-
-                        // Mostrar Overlay de éxito
                         if (overlay) {
                             overlay.classList.remove('hidden');
                             overlay.classList.add('flex');
@@ -101,23 +117,22 @@
                             }, 3000);
                         }
                     } else {
-                        console.error("Error del servidor:", res.status);
-                        alert(`Error: El servidor respondió con estado ${res.status}`);
+                        console.error("Error Webhook:", res.status);
+                        alert(`Error: El motor respondió con estado ${res.status}`);
                     }
 
                 } catch (error) {
-                    console.error("Error de conexión:", error);
-                    // Esto suele pasar por CORS o URL incorrecta
-                    alert("Error de conexión. Revisa la consola (F12) para ver si es un error de CORS.");
+                    console.error("Error:", error);
+                    alert("Ocurrió un error. Revisa consola.");
                 } finally {
-                    // Restaurar botón a su estado original
-                    (btnWebhook as HTMLButtonElement).disabled = false;
+                    // C. Restaurar botón
+                    // @ts-ignore
+                    btnWebhook.disabled = false;
                     btnWebhook.innerHTML = originalContent;
                 }
             });
         }
 
-        // 2. Lógica del Botón Power BI
         if (btnPowerBi) {
             btnPowerBi.addEventListener('click', () => {
                 window.open(POWERBI_URL, '_blank');

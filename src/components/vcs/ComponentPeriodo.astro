@@ -2,101 +2,137 @@
 import '../../styles/global.css';
 import { actions } from "astro:actions";
 
-// 1. OBTENER DATOS DEL SERVIDOR
-const { data: periodoRaw } = await Astro.callAction(actions.getPeriodo, {});
+// 1. Lógica de Servidor: Obtener datos
+const { data: periodoRaw, error: periodoError } = await Astro.callAction(actions.getPeriodo, {});
 
-// 2. PREPARAR DATOS PARA EL MAP
-// Si hay datos en la BD, los usamos.
-// Si no hay datos (array vacío o null), creamos un "mock" con ID 0 para que el input se muestre igual con valor 1.
-const datosParaMostrar = (periodoRaw && Array.isArray(periodoRaw) && periodoRaw.length > 0)
+// 2. Preparación de Datos
+// Si hay datos en la BD, los usamos. Si no, mock con ID 1 y valor 1.
+const periodosRender = (periodoRaw && Array.isArray(periodoRaw) && periodoRaw.length > 0)
     ? periodoRaw
-    : [{ id: 0, periodo: 1 }];
+    : [{ id: 1, periodo: 1 }];
 ---
 
-{/* Iteramos sobre los datos (incluso si es solo 1 registro) */}
-{datosParaMostrar.map((p) => (
-  <div class="flex justify-center items-center mb-4 period-selector-container">
-
-    <label for={`periodo-${p.id}`} class="text-base font-semibold text-gray-700 mr-3">
-        Periodo (meses):
-    </label>
-
-    {/* Loader específico para este ID */}
-    <div id={`loader-${p.id}`} class="hidden mr-2">
-        <svg class="animate-spin h-4 w-4 text-[#0f4c65]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+{/* --- 1. Overlay de Éxito --- */}
+<div id="period-success-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
+    <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
+        <span class="text-[#0f4c65] font-bold text-sm">✓ Configuración guardada. Recargando...</span>
     </div>
+</div>
 
-    <input
-        id={`periodo-${p.id}`}
-        data-id={p.id}
-        name="periodo-input"
-        type="number"
-        min="1"
-        max="12"
-        value={p.periodo ?? 1}
-        class="py-1.5 px-3 border border-gray-300 rounded shadow-sm bg-white text-gray-700 text-sm focus:border-[#0f4c65] focus:ring-[#0f4c65] outline-none transition-all w-24 text-center font-semibold"
-        aria-label="Periodo en meses"
-    />
-  </div>
-))}
+{/* Mensaje de Error de Carga */}
+{periodoError && <div class="fixed top-4 right-4 bg-red-100 text-red-700 px-4 py-2 rounded border border-red-200 z-50">{periodoError.message}</div>}
 
+<div class="flex flex-col items-center justify-center py-4">
+
+    {/* --- 2. El Formulario --- */}
+    <form id="form-periodo" class="flex items-center gap-4" autocomplete="off">
+
+        <label class="text-base font-semibold text-gray-700">
+            Periodo (Meses):
+        </label>
+
+        {periodosRender.map((p) => (
+            <div class="relative group">
+                <div
+                    class="w-24 h-10 bg-[#0f4c65] rounded shadow
+                           flex items-center justify-center text-white font-bold text-lg
+                           focus-within:ring-2 focus-within:ring-offset-1 focus-within:ring-[#0f4c65] transition-all"
+                >
+                    {/* ID oculto */}
+                    <input type="hidden" name="id" value={p.id} />
+
+                    {/* Input Numérico */}
+                    <input
+                        type="number"
+                        name="periodo"
+                        min="1"
+                        max="12"
+                        step="1"
+                        value={p.periodo ?? 1}
+                        class="w-full h-full bg-transparent text-center text-white font-bold text-lg focus:outline-none appearance-none cursor-pointer placeholder-white/50"
+                        data-periodo-input
+                    />
+                </div>
+            </div>
+        ))}
+    </form>
+</div>
+
+{/* --- 3. La Lógica (Auto-save + Reload) --- */}
 <script>
-    document.addEventListener('astro:page-load', () => {
-        // Seleccionamos todos los inputs generados por el map
-        const inputs = document.querySelectorAll('input[name="periodo-input"]');
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputs = document.querySelectorAll('[data-periodo-input]');
+        const overlay = document.getElementById('period-success-overlay');
+        const form = document.getElementById('form-periodo');
 
-        inputs.forEach((element) => {
+        inputs.forEach(element => {
             const input = element as HTMLInputElement;
 
-            input.addEventListener('change', async () => {
-                // 1. Obtener ID y Valor
-                // Si el ID es 0 (fallback), asumimos que en el backend se manejará como creación o update del ID 1
-                const rawId = input.getAttribute('data-id');
-                const id = Number(rawId);
-
+            input.addEventListener('change', async (e) => {
+                // 1. Validación básica
                 let newValue = Number(input.value);
 
-                // 2. Validación Cliente (1-12)
                 if (isNaN(newValue) || newValue < 1) newValue = 1;
                 if (newValue > 12) newValue = 12;
-                input.value = String(newValue); // Corregir visualmente si se pasó
+                input.value = String(newValue);
 
-                // 3. Feedback Visual
-                const loader = document.getElementById(`loader-${id}`);
-                if (loader) loader.classList.remove('hidden');
-                input.disabled = true;
-                input.style.opacity = '0.6';
+                // Obtener ID
+                const container = input.closest('div');
+                const idInput = container?.querySelector('input[name="id"]') as HTMLInputElement;
+                const id = idInput ? Number(idInput.value) : 1;
+
+                // 2. Efecto Visual de Carga
+                if (form) {
+                    // @ts-ignore
+                    form.style.opacity = '0.7';
+                    document.body.style.cursor = 'wait';
+                }
 
                 try {
-                    // 4. Llamada a la API
+                    // 3. Llamada a la API
                     const res = await fetch('/api/update-periodo', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        // Enviamos ID y el nuevo Periodo
                         body: JSON.stringify({ id: id, periodo: newValue })
                     });
 
-                    if (!res.ok) throw new Error('Error al actualizar');
+                    const result = await res.json();
 
-                    console.log(`✅ Periodo actualizado a: ${newValue} (ID: ${id})`);
+                    // 4. Manejo de Respuesta y RECARGA
+                    if (res.ok) {
+                        // Mostrar Overlay
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
 
-                    // 5. Evento Global (Opcional)
-                    document.dispatchEvent(new CustomEvent('period-changed', {
-                        detail: { id: id, period: newValue }
-                    }));
+                            // Esperamos 1 segundo para que el usuario vea el mensaje "Guardado"
+                            // y luego recargamos la página.
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            // Si no hay overlay, recargar directo
+                            window.location.reload();
+                        }
 
-                } catch (error) {
-                    console.error(error);
-                    alert("No se pudo actualizar el periodo.");
-                } finally {
-                    // 6. Restaurar Estado
-                    if (loader) loader.classList.add('hidden');
-                    input.disabled = false;
-                    input.style.opacity = '1';
-                    input.focus();
+                    } else {
+                        alert("Error al guardar: " + (result.error || "Error desconocido"));
+                        // Restaurar estado visual si falló (si no falló, se recargará la página)
+                        if (form) {
+                            // @ts-ignore
+                            form.style.opacity = '1';
+                            document.body.style.cursor = 'default';
+                        }
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Error de conexión.");
+                    if (form) {
+                        // @ts-ignore
+                        form.style.opacity = '1';
+                        document.body.style.cursor = 'default';
+                    }
                 }
             });
         });

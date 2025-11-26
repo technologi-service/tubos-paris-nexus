@@ -85,6 +85,7 @@ const gruposArray = ordenDeseado.map((nombreClave) => {
 
                                     <input
                                         type="number"
+                                        step="any"
                                         name={`min_valor_${idx}`}
                                         value={rango.min_valor ?? ''}
                                         placeholder="Mínimo"
@@ -95,6 +96,7 @@ const gruposArray = ordenDeseado.map((nombreClave) => {
 
                                     <input
                                         type="number"
+                                        step="any"
                                         name={`max_valor_${idx}`}
                                         value={rango.max_valor ?? ''}
                                         placeholder="Máximo"
@@ -152,6 +154,7 @@ const gruposArray = ordenDeseado.map((nombreClave) => {
 
                     if (!idInput) return;
                     const id = Number((idInput as HTMLInputElement).value);
+                    // parseFloat ya maneja decimales correctamente
                     const min_valor = minInput && (minInput as HTMLInputElement).value !== '' ? parseFloat((minInput as HTMLInputElement).value) : null;
                     const max_valor = maxInput && (maxInput as HTMLInputElement).value !== '' ? parseFloat((maxInput as HTMLInputElement).value) : null;
                     const puntuacion = ptInput ? parseInt((ptInput as HTMLInputElement).value) : null;
