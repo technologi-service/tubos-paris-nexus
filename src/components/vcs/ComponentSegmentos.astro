@@ -56,19 +56,23 @@ if (segmentosRaw && Array.isArray(segmentosRaw)) {
                     {segmento.estrellas}
                 </div>
 
+
                 {/* Input Min */}
                 <div class="relative w-20">
                     <input
                         type="number"
                         name="score_min"
                         value={segmento.score_min}
-                        step="0.1"
+                        step="0.01"
                         min="0"
-                        max="5"
+                        max="9.99"
+                        inputmode="decimal"
+                        pattern="^\\d{1}(\\.\\d{0,2})?$|^9(\\.\\d{0,2})?$"
                         class="w-full h-8 border border-gray-300 bg-white rounded-[3px] text-xs px-2 text-center outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65]"
-                        placeholder="0.0"
+                        placeholder="0.00"
                     />
                 </div>
+
 
                 {/* Input Max */}
                 <div class="relative w-20">
@@ -76,11 +80,13 @@ if (segmentosRaw && Array.isArray(segmentosRaw)) {
                         type="number"
                         name="score_max"
                         value={segmento.score_max}
-                        step="0.1"
+                        step="0.01"
                         min="0"
-                        max="5"
+                        max="9.99"
+                        inputmode="decimal"
+                        pattern="^\\d{1}(\\.\\d{0,2})?$|^9(\\.\\d{0,2})?$"
                         class="w-full h-8 border border-gray-300 bg-white rounded-[3px] text-xs px-2 text-center outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65]"
-                        placeholder="0.0"
+                        placeholder="0.00"
                     />
                 </div>
 
@@ -147,23 +153,29 @@ if (segmentosRaw && Array.isArray(segmentosRaw)) {
                         // @ts-ignore
                         const nombreVal = nombreInput.value;
 
-                        // Validar rango 0-5
+
+
+                        // Validar formato numeric(3,2): 0.00 a 9.99, hasta 2 decimales
                         const minNum = parseFloat(minVal);
                         const maxNum = parseFloat(maxVal);
+                        // Solo permite 1 dígito antes del punto (0-9) y hasta 2 decimales
+                        const numeric32Regex = /^(\d{1}(\.\d{1,2})?)$/;
 
-                        if ((minVal !== '' && (minNum < 0 || minNum > 5)) ||
-                            (maxVal !== '' && (maxNum < 0 || maxNum > 5))) {
+                        let minValido = minVal === '' || (numeric32Regex.test(minVal) && minNum >= 0 && minNum <= 9.99);
+                        let maxValido = maxVal === '' || (numeric32Regex.test(maxVal) && maxNum >= 0 && maxNum <= 9.99);
+
+                        if (!minValido || !maxValido) {
                             hayErrorValidacion = true;
                             // @ts-ignore
-                            minInput.style.borderColor = "red"; // Feedback visual simple
+                            minInput.style.borderColor = minValido ? '' : 'red';
                             // @ts-ignore
-                            maxInput.style.borderColor = "red";
+                            maxInput.style.borderColor = maxValido ? '' : 'red';
                         } else {
                             // Resetear borde si corrige
                             // @ts-ignore
-                            minInput.style.borderColor = "";
+                            minInput.style.borderColor = '';
                             // @ts-ignore
-                            maxInput.style.borderColor = "";
+                            maxInput.style.borderColor = '';
                         }
 
                         if (idVal) {
@@ -179,7 +191,7 @@ if (segmentosRaw && Array.isArray(segmentosRaw)) {
                 });
 
                 if (hayErrorValidacion) {
-                    alert("Error: Los valores Mínimo y Máximo deben estar entre 0 y 5.");
+                    alert("Error: Los valores Mínimo y Máximo deben ser numéricos de hasta 3 dígitos y 2 decimales (ej: 9.99).");
                     return; // DETIENE EL ENVÍO
                 }
 
