@@ -27,7 +27,7 @@ if (periodoRaw && Array.isArray(periodoRaw) && periodoRaw.length > 0) {
             type="button"
             id="btn-trigger-webhook"
             data-periodo={periodoValor}
-            class="group relative w-full max-w-3xl py-5 px-8 bg-gradient-to-br from-[#0f4c65] to-[#165f7d] text-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 flex items-center justify-center gap-5 overflow-hidden"
+            class="group relative w-full max-w-3xl py-5 px-8 bg-linear-to-br from-[#0f4c65] to-[#165f7d] text-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 flex items-center justify-center gap-5 overflow-hidden"
         >
             <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
@@ -43,7 +43,7 @@ if (periodoRaw && Array.isArray(periodoRaw) && periodoRaw.length > 0) {
 
     <div class="space-y-4">
         <div class="w-full h-64 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 relative overflow-hidden group">
-            <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#0f4c65_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#0f4c65_1px,transparent_1px)] bg-size-[16px_16px]"></div>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
@@ -70,7 +70,7 @@ if (periodoRaw && Array.isArray(periodoRaw) && periodoRaw.length > 0) {
         const btnPowerBi = document.getElementById('btn-powerbi');
         const overlay = document.getElementById('calc-success-overlay');
 
-        const WEBHOOK_URL = 'https://kukulcanai.app.n8n.cloud/webhook/recalcular-score';
+        const WEBHOOK_URL = 'https://kukulcanai.app.n8n.cloud/webhook/recalcular-score-tubos-paris';
         const POWERBI_URL = 'https://app.powerbi.com/';
 
         if (btnWebhook) {

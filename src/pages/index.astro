@@ -10,12 +10,12 @@ const bgImage = "url('/dragones6.png')";
   style={`background-image: ${bgImage};`}
 >
   {/* Overlay gradiente para dar el tono de marca sobre la imagen */}
-  <div class="absolute inset-0 bg-gradient-to-br from-[#0f4c65]/90 to-[#0a3548]/90 z-0"></div>
+  <div class="absolute inset-0 bg-linear-to-br from-[#0f4c65]/90 to-[#0a3548]/90 z-0"></div>
 
   <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 z-10 mx-4 border border-gray-100 relative overflow-hidden">
 
     {/* Decoración superior */}
-    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#0f4c65] to-[#165f7d]"></div>
+    <div class="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-[#0f4c65] to-[#165f7d]"></div>
 
     {/* Header con Logo */}
     <div class="flex flex-col items-center mb-8">
@@ -26,7 +26,7 @@ const bgImage = "url('/dragones6.png')";
             <path d="M22 47 Q25 42, 28 47" stroke="white" stroke-width="2" fill="none"/>
         </svg>
       </div>
-      <h2 class="text-3xl font-extrabold text-[#0f4c65]">Silpro 3R</h2>
+      <h2 class="text-3xl font-extrabold text-[#0f4c65]">Tubos Paris</h2>
       <p class="text-gray-500 text-sm mt-1">Acceso al sistema KAIloop Nexus</p>
     </div>
 
@@ -78,7 +78,7 @@ const bgImage = "url('/dragones6.png')";
       <button
         type="submit"
         id="btn-login"
-        class="w-full py-3.5 rounded-lg bg-gradient-to-r from-[#0f4c65] to-[#165f7d] text-white font-bold text-lg shadow-md hover:shadow-lg hover:from-[#0c3b4e] hover:to-[#124d66] transform hover:-translate-y-0.5 transition-all duration-200 flex justify-center items-center gap-2"
+        class="w-full py-3.5 rounded-lg bg-linear-to-r from-[#0f4c65] to-[#165f7d] text-white font-bold text-lg shadow-md hover:shadow-lg hover:from-[#0c3b4e] hover:to-[#124d66] transform hover:-translate-y-0.5 transition-all duration-200 flex justify-center items-center gap-2"
       >
         <span>Acceder</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -112,8 +112,8 @@ const bgImage = "url('/dragones6.png')";
 
 <script is:inline>
   document.addEventListener("DOMContentLoaded", () => {
-    const DEFAULT_USER = "silpro3r@correo.com";
-    const DEFAULT_PASSWORD = "silpro3r2025";
+    const DEFAULT_USER = "tubosparis@correo.com";
+    const DEFAULT_PASSWORD = "tubosparis2025";
 
     const form = document.getElementById("loginForm");
     const usuarioInput = document.getElementById("usuario");

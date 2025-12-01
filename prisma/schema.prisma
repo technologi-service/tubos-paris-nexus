@@ -7,41 +7,113 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model clientes_vcs {
-  id_base        BigInt   @id @default(autoincrement())
-  id_cliente     String
-  nombre_empresa String?
-  year_          Int
-  mes            Int
-  numero_periodo Int      @db.SmallInt
-  corte          DateTime @db.Date
-  recencia       Int
-  frequencia     Int
-  volumen        Decimal  @db.Decimal(20, 2)
-  media_margen   Decimal? @db.Decimal(10, 4)
-  r_score        Int?
-  f_score        Int?
-  v_score        Int?
-  m_score        Int?
-  score          Decimal? @db.Decimal(6, 2)
-  segmento       String?
-  calculado_en   DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([id_cliente, year_, numero_periodo], map: "unique_cliente_periodo")
+model categorias_cognitivas {
+  id                  Int     @id @default(autoincrement())
+  de                  String?
+  a                   String?
+  categoria_cognitiva String?
 }
 
-model data_input_clientes_vcs {
-  id                  BigInt   @id @default(autoincrement())
-  id_cliente          String   @db.VarChar(50)
-  id_venta            String   @db.VarChar(50)
-  nombre_razon_social String?  @db.VarChar(255)
-  fecha_de_compra     DateTime @db.Date
-  volumen             Decimal? @default(0) @db.Decimal(15, 2)
-  margen              Decimal? @default(0) @db.Decimal(15, 2)
-  sede                String?  @db.VarChar(100)
+model clientes_vcs {
+  id_base           BigInt   @id @default(autoincrement())
+  id_cliente        String
+  nombre_empresa    String?
+  year_             Int
+  mes               Int
+  numero_periodo    Int      @db.SmallInt
+  corte             DateTime @db.Date
+  recencia          Int
+  frequencia        Int
+  volumen           Decimal  @db.Decimal(20, 2)
+  media_margen      Decimal? @db.Decimal(10, 4)
+  r_score           Int?
+  f_score           Int?
+  v_score           Int?
+  m_score           Int?
+  score             Decimal? @db.Decimal(6, 2)
+  segmento          String?
+  segmento_numerico Int?
+  calculado_en      DateTime @default(now()) @db.Timestamptz(6)
+}
 
-  @@index([id_cliente], map: "idx_cliente_vcs")
-  @@index([fecha_de_compra], map: "idx_fecha_vcs")
+model data_tercerios_varios {
+  id              Int       @id @default(autoincrement())
+  cliente         String?
+  nombre_r_social String?
+  fecha_compra    DateTime? @db.Date
+  volumen         Decimal?  @db.Decimal(10, 2)
+  margen          Decimal?  @db.Decimal(10, 4)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model datos_para_el_csv {
+  id_cliente      String?   @db.VarChar(50)
+  nombre_r_social String?
+  fecha_compra    DateTime? @db.Date
+  volumen         Decimal?  @db.Decimal(10, 2)
+  margen          Decimal?  @db.Decimal(10, 4)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model excel_data {
+  cif_o_nif           String?   @map("cif o nif")
+  tipo_cliente        String?   @map("tipo cliente")
+  cliente             BigInt?
+  nombre_r_social     String?
+  sector              String?
+  fecha_alta          String?
+  antig_edad__a_os_   Float?    @map("antigüedad (años)")
+  razon_social        String?   @map("razon social")
+  fecha_compra        DateTime? @db.Date
+  mes                 BigInt?
+  a_o                 BigInt?   @map("año")
+  fecha_corte_periodo DateTime? @map("fecha corte periodo") @db.Timestamp(6)
+  recency             Float?
+  frecuency_          BigInt?   @map("frecuency ")
+  volumen             Float?
+  margen              Float?
+  i_portes            BigInt?
+  vencimiento         String?
+  fecha_pago          String?
+  impago              Float?
+  serie_alb           String?
+  articulo            String?
+  titulo              String?
+  unidades            Float?
+  precio              Float?
+  peso_real           Float?
+  tipo_portes_doc     String?
+  forma_pago          String?
+  estado_alb          BigInt?
+  tarifa              String?
+  margen_importe      Float?
+  serie_fac           String?
+  rig_fac             BigInt?
+  estado_fac          BigInt?
+  case                String?
+  tipo_portes_cli     String?
+  rango               String?
+  indice              String?
+  i_portes_cli        BigInt?
+  fecha_entrada_mat   String?
+
+  @@ignore
+}
+
+model pesos_vcs {
+  id     Int      @id(map: "variables_pesos_pkey") @default(autoincrement())
+  nombre String?  @db.VarChar(255)
+  peso   Decimal? @db.Decimal(10, 2)
+}
+
+model rangos_vcs {
+  id         Int      @id(map: "variables_rangos_pkey") @default(autoincrement())
+  nombre     String?
+  min_valor  Decimal? @db.Decimal(20, 2)
+  max_valor  Decimal? @db.Decimal(20, 2)
+  puntuacion Int?
 }
 
 model periodo_vcs {
@@ -49,24 +121,10 @@ model periodo_vcs {
   periodo Int?
 }
 
-model pesos_vcs {
-  id     Int     @id @default(autoincrement())
-  nombre String? @db.VarChar(255)
-  peso   Float
-}
-
-model rangos_vcs {
-  id         Int     @id @default(autoincrement())
-  nombre     String  @db.VarChar(255)
-  min_valor  Decimal @db.Decimal(20, 2)
-  max_valor  Decimal @db.Decimal(20, 2)
-  puntuacion Int?
-}
-
 model segmentos_vcs {
   id               Int     @id @default(autoincrement())
   estrellas        Int
-  score_min        Decimal @db.Decimal(3, 1)
-  score_max        Decimal @db.Decimal(3, 1)
+  score_min        Decimal @db.Decimal(3, 2)
+  score_max        Decimal @db.Decimal(3, 2)
   nombre_categoria String?
 }
