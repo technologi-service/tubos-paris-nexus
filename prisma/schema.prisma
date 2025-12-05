@@ -7,13 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model categorias_cognitivas {
-  id                  Int     @id @default(autoincrement())
-  de                  String?
-  a                   String?
-  categoria_cognitiva String?
-}
-
 model clientes_vcs {
   id_base           BigInt   @id @default(autoincrement())
   id_cliente        String
@@ -127,4 +120,60 @@ model segmentos_vcs {
   score_min        Decimal @db.Decimal(3, 2)
   score_max        Decimal @db.Decimal(3, 2)
   nombre_categoria String?
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model data_set_kpi {
+  fecha_corte         DateTime  @db.Date
+  cliente             String?   @db.VarChar(50)
+  volumen             Decimal?  @db.Decimal(20, 2)
+  freq                Int?
+  margen              Decimal?  @db.Decimal(20, 2)
+  recency             Int?
+  segmento            String?
+  periodo             Int?
+  periodo_consecutivo Int?
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([fecha_corte, cliente], map: "unq_kpi_cliente_fecha_refactor")
+  @@index([cliente], map: "idx_kpi_cliente")
+  @@index([fecha_corte], map: "idx_kpi_fecha_corte")
+  @@ignore
+}
+
+model resumen_anual_wide_2025 {
+  id            BigInt    @id @default(autoincrement())
+  cliente       String    @unique(map: "unq_resumen_cliente") @db.VarChar(50)
+  fecha_corte_1 DateTime? @db.Date
+  volumen_1     Decimal?  @db.Decimal(20, 2)
+  frecuencia_1  Int?
+  recencia_1    Int?
+  margen_1      Decimal?  @db.Decimal(20, 2)
+  segmento_1    String?
+  fecha_corte_2 DateTime? @db.Date
+  volumen_2     Decimal?  @db.Decimal(20, 2)
+  frecuencia_2  Int?
+  recencia_2    Int?
+  margen_2      Decimal?  @db.Decimal(20, 2)
+  segmento_2    String?
+  fecha_corte_3 DateTime? @db.Date
+  volumen_3     Decimal?  @db.Decimal(20, 2)
+  frecuencia_3  Int?
+  recencia_3    Int?
+  margen_3      Decimal?  @db.Decimal(20, 2)
+  segmento_3    String?
+  fecha_corte_4 DateTime? @db.Date
+  volumen_4     Decimal?  @db.Decimal(20, 2)
+  frecuencia_4  Int?
+  recencia_4    Int?
+  margen_4      Decimal?  @db.Decimal(20, 2)
+  segmento_4    String?
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model categorias_cognitivas_vcs {
+  id                  Int     @id(map: "categorias_cognitivas_pkey") @default(autoincrement())
+  de                  Int?
+  a                   Int?
+  categoria_cognitiva String?
 }

@@ -1,0 +1,211 @@
+---
+import { actions } from "astro:actions";
+
+// 1. Obtener datos del servidor
+const { data: categoriasRaw, error: categoriasError } = await Astro.callAction(actions.GetCategorias_cognitivas_vcs, {});
+
+// 2. Procesamiento y Ordenamiento
+// Ordenamos por el valor 'de' para que aparezcan en secuencia lógica (ej: 0-10, 11-20...)
+type CategoriaCognitiva = {
+    id: number | null;
+    de: number | string;
+    a: number | string;
+    categoria_cognitiva: string;
+};
+
+let categoriasRender: CategoriaCognitiva[] = [];
+if (categoriasRaw && Array.isArray(categoriasRaw)) {
+    categoriasRender = categoriasRaw
+        .map((cat: any) => ({
+            id: typeof cat.id === "number" ? cat.id : cat.id ? Number(cat.id) : null,
+            de: typeof cat.de === "number" ? cat.de : cat.de ?? "",
+            a: typeof cat.a === "number" ? cat.a : cat.a ?? "",
+            categoria_cognitiva: typeof cat.categoria_cognitiva === "string" ? cat.categoria_cognitiva : cat.categoria_cognitiva ?? ""
+        }))
+        .sort((a: CategoriaCognitiva, b: CategoriaCognitiva) => Number(a.de) - Number(b.de));
+} else {
+    categoriasRender = [];
+}
+
+// Solo mostrar las categorías que vienen en la petición, sin fila extra de ejemplo
+---
+
+{/* Overlay de Éxito */}
+<div id="cat-success-overlay" class="hidden fixed inset-0 bg-black/20 backdrop-blur-[2px] items-center justify-center z-50 transition-all">
+    <div class="bg-white border border-[#0f4c65] shadow-xl px-6 py-4 rounded text-center">
+        <span class="text-[#0f4c65] font-bold text-sm">✓ Categorías guardadas correctamente</span>
+    </div>
+</div>
+
+{/* Mensaje de Error de Carga */}
+{categoriasError && (
+    <div class="fixed top-4 right-4 bg-red-100 text-red-700 px-4 py-2 rounded border border-red-400 z-50">
+        {categoriasError.message}
+    </div>
+)}
+
+<div class="w-full max-w-4xl mx-auto mt-8">
+
+    <h3 class="text-xl font-bold text-gray-700 text-center mb-6">
+        Categorías Cognitivas
+    </h3>
+
+    <form id="form-categorias" class="w-full" autocomplete="off">
+
+        {/* Encabezados */}
+        <div class="flex gap-4 mb-2 px-2">
+            <div class="w-24 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">De</div>
+            <div class="w-24 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">A</div>
+            <div class="flex-1 text-left pl-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de la Categoría</div>
+        </div>
+
+        {/* Filas */}
+        <div class="space-y-3">
+            {categoriasRender.map((cat: any, idx: number) => (
+                <div class="flex gap-4 items-center categoria-row group hover:bg-gray-50 p-2 rounded transition-colors" data-idx={idx}>
+                    {/* ID Oculto */}
+                    <input type="hidden" name="id" value={cat.id ?? ''} />
+                    {/* Input De */}
+                    <div class="w-24">
+                        <input
+                            type="number"
+                            name="de"
+                            value={cat.de}
+                            class="w-full h-10 border border-gray-300 bg-white rounded text-sm p-2 text-center outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65] shadow-sm transition-all"
+                            placeholder="0"
+                        />
+                    </div>
+                    {/* Input A */}
+                    <div class="w-24">
+                        <input
+                            type="number"
+                            name="a"
+                            value={cat.a}
+                            class="w-full h-10 border border-gray-300 bg-white rounded text-sm p-2 text-center outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65] shadow-sm transition-all"
+                            placeholder="0"
+                        />
+                    </div>
+                    {/* Input Nombre de la Categoría */}
+                    <div class="flex-1 pl-2">
+                        <input
+                            type="text"
+                            name="categoria_cognitiva"
+                            value={cat.categoria_cognitiva}
+                            class="w-full h-10 border border-gray-300 bg-white rounded text-sm p-2 outline-none focus:border-[#0f4c65] focus:ring-1 focus:ring-[#0f4c65] shadow-sm transition-all"
+                            placeholder="Nombre de la categoría"
+                        />
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        {/* Botón Guardar */}
+        <div class="mt-8 flex justify-end">
+            <button
+                type="submit"
+                id="btn-guardar-categorias"
+                class="py-3 px-8 bg-linear-to-r from-[#0f4c65] to-[#165f7d] text-white text-base font-bold rounded shadow-md hover:shadow-lg hover:from-[#0c3b4e] hover:to-[#124d66] focus:outline-none transition-all duration-200 disabled:opacity-70 disabled:cursor-wait flex items-center gap-2"
+            >
+                <span>Guardar Cambios</span>
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('form-categorias');
+        const overlay = document.getElementById('cat-success-overlay');
+        const btn = document.getElementById('btn-guardar-categorias');
+
+        if (form && btn) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // 1. Estado de Carga
+                const originalHTML = btn.innerHTML;
+                // @ts-ignore
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Guardando...
+                `;
+                // @ts-ignore
+                form.style.opacity = '0.7';
+
+                // 2. Recolección de Datos
+
+                const filas = form.querySelectorAll('.categoria-row');
+                const dataToSend: { id: number | null; de: number; a: number; categoria_cognitiva: string }[] = [];
+                let errorValidacion = false;
+
+                filas.forEach((fila) => {
+                    const idInput = fila.querySelector('input[name="id"]') as HTMLInputElement;
+                    const deInput = fila.querySelector('input[name="de"]') as HTMLInputElement;
+                    const aInput = fila.querySelector('input[name="a"]') as HTMLInputElement;
+                    const catInput = fila.querySelector('input[name="categoria_cognitiva"]') as HTMLInputElement;
+
+                    if (idInput && deInput && aInput && catInput) {
+                        const idVal = idInput.value;
+                        const deVal = deInput.value;
+                        const aVal = aInput.value;
+                        const catVal = catInput.value;
+
+                        // Si todos los campos están vacíos, ignorar la fila
+                        if (deVal === '' && aVal === '' && catVal.trim() === '') return;
+
+                        dataToSend.push({
+                            id: idVal ? Number(idVal) : null,
+                            de: deVal !== '' ? parseInt(deVal) : 0,
+                            a: aVal !== '' ? parseInt(aVal) : 0,
+                            categoria_cognitiva: catVal.trim()
+                        });
+                    }
+                });
+
+                try {
+                    // 3. Envío a la API
+                    // Asegúrate de crear este endpoint en: src/pages/api/update-categorias-cognitivas.ts
+                    const res = await fetch('/api/update-categorias-cognitivas', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ categorias: dataToSend })
+                    });
+
+                    const result = await res.json();
+
+                    // 4. Respuesta
+                    if (res.ok) {
+                        console.log("Guardado exitoso:", result);
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            overlay.classList.add('flex');
+                            setTimeout(() => {
+                                overlay.classList.remove('flex');
+                                overlay.classList.add('hidden');
+                            }, 1500);
+                        }
+                    } else {
+                        console.error("Error servidor:", result);
+                        alert("Error al guardar: " + (result.error || "Desconocido"));
+                    }
+
+                } catch (err) {
+                    console.error("Error red:", err);
+                    alert("Error de conexión.");
+                } finally {
+                    // 5. Restaurar
+                    // @ts-ignore
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    // @ts-ignore
+                    form.style.opacity = '1';
+                }
+            });
+        }
+    });
+</script>
